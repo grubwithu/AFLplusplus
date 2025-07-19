@@ -1375,6 +1375,22 @@ abort_trimming:
 
 }
 
+static void md5_hash(const char *str, u32 len, char *md5_str) {
+    unsigned char digest[MD5_DIGEST_LENGTH];
+    MD5_CTX ctx;
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, str, len);
+    MD5_Final(digest, &ctx);
+
+    // 将 MD5 结果转换为十六进制字符串
+    for(int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(&md5_str[i*2], "%02x", (unsigned int)digest[i]);
+    }
+    md5_str[32] = '\0';
+}
+
+
+
 /* Write a modified test case, run program, process results. Handle
    error conditions, returning 1 if it's time to bail out. This is
    a helper function for fuzz_one(). */
@@ -1390,6 +1406,8 @@ u8 __attribute__((hot)) common_fuzz_stuff(afl_state_t *afl, u8 *out_buf,
 
   }
 
+
+  afl->queue_cur->fuzz_times_since_last_interest++;
   fault = fuzz_run_target(afl, &afl->fsrv, afl->fsrv.exec_tmout);
 
   if (afl->stop_soon) { return 1; }
@@ -1421,8 +1439,19 @@ u8 __attribute__((hot)) common_fuzz_stuff(afl_state_t *afl, u8 *out_buf,
   }
 
   /* This handles FAULT_ERROR for us: */
-
-  afl->queued_discovered += save_if_interesting(afl, out_buf, len, fault);
+  u32 is_interesting = save_if_interesting(afl, out_buf, len, fault);
+  afl->queued_discovered += is_interesting;
+  
+  if (is_interesting) {
+    u8 old_md5_string[MD5_DIGEST_LENGTH * 2 + 1] = { 0 };
+    for (u32 i = 0; i < MD5_DIGEST_LENGTH; i++) {
+      sprintf(old_md5_string + i * 2, "%02x", afl->queue_cur->file_checksum[i]);
+    }
+    u8 new_md5_string[MD5_DIGEST_LENGTH * 2 + 1] = { 0 };
+    md5_hash(out_buf, len, new_md5_string);
+    GrubF("MD5=%s find new interests after %d tries, New MD5=%s.", old_md5_string, afl->queue_cur->fuzz_times_since_last_interest, new_md5_string);
+    afl->queue_cur->fuzz_times_since_last_interest = 0;
+  }
 
   if (!(afl->stage_cur % afl->stats_update_freq) ||
       afl->stage_cur + 1 == afl->stage_max) {

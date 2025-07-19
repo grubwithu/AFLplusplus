@@ -45,6 +45,9 @@ ifdef NO_UTF
   override CFLAGS_OPT += -DFANCY_BOXES_NO_UTF
 endif
 
+override CFLAGS += -lcrypto -lssl
+override LDFLAGS += -lcrypto -lssl
+
 ifdef ASAN_BUILD
   $(info Compiling ASAN version of binaries)
   override CFLAGS += $(ASAN_CFLAGS)

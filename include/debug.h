@@ -291,6 +291,12 @@ static inline const char *colorfilter(const char *x) {
 
 /* Show a prefixed "success" message. */
 
+#define GrubF(x...) do { \
+    SAYF(cLBL "[^] " cRST x); \
+    SAYF(cRST "\n"); \
+  } while (0)
+
+
 #define OKF(x...)             \
   do {                        \
                               \
