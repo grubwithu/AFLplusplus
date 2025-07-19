@@ -675,6 +675,30 @@ static u8 check_if_text(afl_state_t *afl, struct queue_entry *q) {
 
 }
 
+static int calculate_file_md5(u8* fname, u8* md5) {
+  FILE *file = fopen(fname, "rb");
+  if (!file) {
+      printf("Failed to open this file: %s\n", fname);
+      return -1;
+  }
+  
+  MD5_CTX md5_ctx;
+  MD5_Init(&md5_ctx);
+  
+  unsigned char buffer[1024];
+  size_t bytes_read;
+  
+  while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+      MD5_Update(&md5_ctx, buffer, bytes_read);
+  }
+  
+  MD5_Final(md5, &md5_ctx);
+  fclose(file);
+  
+  return 0;
+
+}
+
 /* Append new test case to the queue. */
 
 void add_to_queue(afl_state_t *afl, u8 *fname, u32 len, u8 passed_det) {
@@ -691,6 +715,8 @@ void add_to_queue(afl_state_t *afl, u8 *fname, u32 len, u8 passed_det) {
   q->mother = afl->queue_cur;
   q->weight = 1.0;
   q->perf_score = 100;
+  q->fuzz_times_since_last_interest = 0;
+  calculate_file_md5(fname, q->file_checksum);
 
 #ifdef INTROSPECTION
   q->bitsmap_size = afl->bitsmap_size;

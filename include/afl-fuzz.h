@@ -65,6 +65,7 @@
 
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <openssl/md5.h>
 #ifndef USEMMAP
   #include <sys/shm.h>
 #endif
@@ -246,6 +247,9 @@ struct queue_entry {
 #ifdef INTROSPECTION
   u32 bitsmap_size;
 #endif
+
+  u8  file_checksum[MD5_DIGEST_LENGTH];
+  u32 fuzz_times_since_last_interest;
 
   double perf_score,                    /* performance score                */
       weight;
