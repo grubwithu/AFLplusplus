@@ -1375,18 +1375,18 @@ abort_trimming:
 
 }
 
-static void md5_hash(const char *str, u32 len, char *md5_str) {
-    unsigned char digest[MD5_DIGEST_LENGTH];
-    MD5_CTX ctx;
-    MD5_Init(&ctx);
-    MD5_Update(&ctx, str, len);
-    MD5_Final(digest, &ctx);
+static void sha1_hash(const char *str, u32 len, char *sha1_str) {
+    unsigned char digest[SHA_DIGEST_LENGTH];
+    SHA_CTX ctx;
+    SHA1_Init(&ctx);
+    SHA1_Update(&ctx, str, len);
+    SHA1_Final(digest, &ctx);
 
-    // 将 MD5 结果转换为十六进制字符串
-    for(int i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        sprintf(&md5_str[i*2], "%02x", (unsigned int)digest[i]);
+    // 将 SHA1 结果转换为十六进制字符串
+    for(int i = 0; i < SHA_DIGEST_LENGTH; i++) {
+        sprintf(&sha1_str[i*2], "%02x", (unsigned int)digest[i]);
     }
-    md5_str[32] = '\0';
+    sha1_str[40] = '\0';
 }
 
 
@@ -1443,13 +1443,16 @@ u8 __attribute__((hot)) common_fuzz_stuff(afl_state_t *afl, u8 *out_buf,
   afl->queued_discovered += is_interesting;
   
   if (is_interesting) {
-    u8 old_md5_string[MD5_DIGEST_LENGTH * 2 + 1] = { 0 };
-    for (u32 i = 0; i < MD5_DIGEST_LENGTH; i++) {
+    u8 old_md5_string[SHA_DIGEST_LENGTH * 2 + 1] = { 0 };
+    for (u32 i = 0; i < SHA_DIGEST_LENGTH; i++) {
       sprintf(old_md5_string + i * 2, "%02x", afl->queue_cur->file_checksum[i]);
     }
-    u8 new_md5_string[MD5_DIGEST_LENGTH * 2 + 1] = { 0 };
-    md5_hash(out_buf, len, new_md5_string);
-    GrubF("MD5=%s find new interests after %d tries, New MD5=%s.", old_md5_string, afl->queue_cur->fuzz_times_since_last_interest, new_md5_string);
+    u8 new_md5_string[SHA_DIGEST_LENGTH * 2 + 1] = { 0 };
+    sha1_hash(out_buf, len, new_md5_string);
+    GrubF("SHA1=%s find new interests after %d tries, New SHA1=%s.", 
+      old_md5_string, 
+      afl->queue_cur->fuzz_times_since_last_interest, 
+      new_md5_string);
     afl->queue_cur->fuzz_times_since_last_interest = 0;
   }
 
