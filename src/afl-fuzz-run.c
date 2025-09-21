@@ -1390,6 +1390,18 @@ static void sha1_hash(const char *str, u32 len, char *sha1_str) {
 }
 
 
+static void FluentF(char* str) {
+	char* url = getenv("FLUENT_URL");
+	if (!url) return;
+	static char buffer[2048];
+	sprintf(buffer, 
+			"curl -X POST -H \"Content-Type: application/json\" -d \'%s\' %s",
+			str, url);
+	// GrubF("%s", buffer);
+	system(buffer);
+
+}
+
 
 /* Write a modified test case, run program, process results. Handle
    error conditions, returning 1 if it's time to bail out. This is
@@ -1453,6 +1465,12 @@ u8 __attribute__((hot)) common_fuzz_stuff(afl_state_t *afl, u8 *out_buf,
       old_md5_string, 
       afl->queue_cur->fuzz_times_since_last_interest, 
       new_md5_string);
+    char buffer[2048];
+    sprintf(buffer,
+            "{\"fuzzer\": \"AFL++\", \"old\": \"%s\", \"new\": \"%s\", "
+            "\"tries\": \"%d\"}",
+            old_md5_string, new_md5_string, afl->queue_cur->fuzz_times_since_last_interest);
+    FluentF(buffer);
     afl->queue_cur->fuzz_times_since_last_interest = 0;
   }
 
